@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0c0c0c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="إدارة الدوام" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23dfba38'/%3E%3Ctext x='50' y='68' font-size='55' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23111111'%3Eم%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23dfba38'/%3E%3Ctext x='50' y='68' font-size='55' font-family='Arial' font-weight='bold' text-anchor='middle' fill='%23111111'%3Eم%3C/text%3E%3C/svg%3E" />
+  <title>نظام إدارة الدوام</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Cairo & Tajawal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- html2canvas for generating schedule image -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'Tajawal', 'sans-serif'],
+          },
+          colors: {
+            appBg: '#0c0c0c',
+            cardBg: '#171715',
+            cardInner: '#1f1f1c',
+            cardBorder: '#2a2923',
+            goldPrimary: '#dfba38',
+            goldHover: '#cca729',
+            goldDark: '#2e2712',
+            emeraldActive: '#10b981',
+            emeraldDark: '#102b22',
+            crimsonDark: '#2b1416',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: #0c0c0c;
+      color: #f3f4f6;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    /* Custom scrollbar for tabs */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Custom date input styling for dark theme */
+    input[type="date"] {
+      color-scheme: dark;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8) sepia(0.5) saturate(3) hue-rotate(10deg);
+      cursor: pointer;
+    }
+    /* Smooth card transitions */
+    .status-btn {
+      transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .status-btn:active {
+      transform: scale(0.95);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade {
+      animation: fadeIn 0.22s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-[#0c0c0c] text-gray-100 min-h-screen flex justify-center">
+
+  <!-- Main Mobile-First Container -->
+  <div class="w-full max-w-md min-h-screen bg-[#0c0c0c] flex flex-col justify-between pb-8 relative shadow-2xl border-x border-[#1e1e1b]">
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden items-center gap-2 bg-[#23221c] border border-[#dfba38]/60 text-[#f7e08b] px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-bold transition-all">
+      <span id="toast-icon">✅</span>
+      <span id="toast-msg">تم الحفظ بنجاح</span>
+    </div>
+
+    <div>
+      <!-- 1. TOP HEADER -->
+      <header class="px-4 pt-4 pb-3 flex items-center justify-between border-b border-[#1d1c17] bg-[#10100e]/95 sticky top-0 z-30 backdrop-blur-md">
+        <!-- Right Side: Badge & Restaurant Title -->
+        <div class="flex items-center gap-3">
+          <button onclick="switchTab('settings')" title="تعديل اسم المطعم" class="w-11 h-11 rounded-2xl bg-[#9e8329] hover:bg-[#b59732] text-[#111] font-black text-xl flex items-center justify-center shadow-inner border border-[#dfba38]/40 transition">
+            <span id="header-logo-char">م</span>
+          </button>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h1 id="header-rest-name" onclick="switchTab('settings')" class="text-base sm:text-lg font-extrabold text-white tracking-tight cursor-pointer hover:text-[#dfba38] transition">
+                مطعمي
+              </h1>
+            </div>
+            <p class="text-[11px] text-gray-400 font-medium -mt-0.5">نظام إدارة الدوام</p>
+          </div>
+        </div>
+
+        <!-- Left Side: Quick Tomorrow Pill Button -->
+        <button onclick="jumpToTomorrow()" class="px-3.5 py-1.5 rounded-full bg-[#2b2410] hover:bg-[#3b3116] border border-[#5e4d1c] text-[#dfba38] text-xs font-bold transition active:scale-95">
+          غدا
+        </button>
+      </header>
+
+      <!-- 2. DATE SELECTION CARD -->
+      <section class="px-3.5 pt-3.5">
+        <div class="bg-[#171715] border border-[#282721] rounded-2xl p-3.5 shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-[#24231e] border border-[#333129] flex items-center justify-center text-lg shadow-inner">
+                📅
+              </div>
+              <div>
+                <span class="block text-[11px] text-gray-400 font-semibold">جدول يوم</span>
+                <span id="formatted-arabic-date" class="text-sm sm:text-base font-extrabold text-white">
+                  السبت - 14 تشرين الثاني 2026
+                </span>
+              </div>
+            </div>
+            <!-- Quick Today reset if not today -->
+            <button id="btn-back-today" onclick="jumpToToday()" class="hidden text-[11px] px-2.5 py-1 rounded-lg bg-[#25241f] text-gray-300 hover:text-white border border-[#38362e]">
+              رجوع لليوم
+            </button>
+          </div>
+
+          <!-- Date Picker & Golden "غدا" Button Row -->
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <input
+                type="date"
+                id="date-picker"
+                onchange="handleDateChange(this.value)"
+                class="w-full bg-[#10100e] border border-[#2b2a23] focus:border-[#dfba38] rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold text-gray-200 outline-none text-center tracking-wider"
+              />
+            </div>
+            <button
+              onclick="advanceOneDay()"
+              class="px-5 py-2 rounded-xl bg-[#dfba38] hover:bg-[#cca729] text-[#121210] font-extrabold text-xs sm:text-sm shadow-md transition active:scale-95 shrink-0"
+            >
+              غدا
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. NAVIGATION TABS (4 TABS) -->
+      <nav class="px-3.5 pt-3">
+        <div class="bg-[#171715] border border-[#26251f] rounded-2xl p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <button
+            id="tab-btn-today"
+            onclick="switchTab('today')"
+            class="tab-btn flex-1 min-w-[78px] py-2 px-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition whitespace-nowrap bg-[#dfba38] text-[#121210] shadow"
+          >
+            <span>📋</span>
+            <span>اليوم</span>
+          </button>
+
+          <button
+            id="tab-btn-tomorrow"
+            onclick="switchTab('tomorrow')"
+            class="tab-btn flex-1 min-w-[92px] py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition whitespace-nowrap text-gray-300 hover:bg-[#23221d]"
+          >
+            <span>🖼️</span>
+            <span>جدول غدا</span>
+          </button>
+
+          <button
+            id="tab-btn-weekly"
+            onclick="switchTab('weekly')"
+            class="tab-btn flex-1 min-w-[105px] py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition whitespace-nowrap text-gray-300 hover:bg-[#23221d]"
+          >
+            <span>📊</span>
+            <span>التقرير الأسبوعي</span>
+          </button>
+
+          <button
+            id="tab-btn-settings"
+            onclick="switchTab('settings')"
+            class="tab-btn flex-1 min-w-[85px] py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition whitespace-nowrap text-gray-300 hover:bg-[#23221d]"
+          >
+            <span>👷</span>
+            <span>الإدارة</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- 4. MAIN DYNAMIC VIEWS -->
+      <main class="px-3.5 pt-3.5">
+
+        <!-- VIEW 1: TODAY'S ATTENDANCE ("اليوم") -->
+        <div id="view-today" class="space-y-3.5 animate-fade">
+          <!-- Departments Container -->
+          <div id="departments-container" class="space-y-3.5"></div>
+
+          <!-- Bottom Prominent Golden CTA Button -->
+          <div class="pt-2">
+            <button
+              onclick="openTomorrowScheduleFromCTA()"
+              class="w-full py-3.5 px-4 rounded-2xl bg-[#dfba38] hover:bg-[#d1ac2c] text-[#141310] font-black text-sm sm:text-base shadow-lg shadow-[#dfba38]/10 flex items-center justify-center gap-2 transition active:scale-[0.98]"
+            >
+              <span>إنشاء جدول غدا</span>
+              <span class="text-lg">🖼️</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- VIEW 2: TOMORROW SCHEDULE CARD ("جدول غدا") -->
+        <div id="view-tomorrow" class="hidden space-y-3.5 animate-fade">
+          <!-- Action Buttons Above Card -->
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              onclick="downloadScheduleImage()"
+              id="btn-download-png"
+              class="py-2.5 px-3 rounded-xl bg-[#dfba38] hover:bg-[#cca729] text-[#121210] font-extrabold text-xs flex items-center justify-center gap-1.5 shadow transition active:scale-95"
+            >
+              <span>📥</span>
+              <span>تحميل كصورة (PNG)</span>
+            </button>
+            <button
+              onclick="copyScheduleWhatsApp()"
+              class="py-2.5 px-3 rounded-xl bg-[#10b981] hover:bg-[#0ea371] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow transition active:scale-95"
+            >
+              <span>📋</span>
+              <span>نسخ النص للواتساب</span>
+            </button>
+          </div>
+
+          <!-- Screenshot-Ready Schedule Poster Card -->
+          <div id="schedule-capture-area" class="bg-gradient-to-b from-[#1a1915] to-[#11110f] border-2 border-[#dfba38]/50 rounded-3xl p-4 shadow-2xl relative overflow-hidden">
+            <!-- Subtle decorative top bar -->
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#9e8329] via-[#dfba38] to-[#9e8329]"></div>
+
+            <!-- Poster Header -->
+            <div class="flex items-center justify-between border-b border-[#2b2a22] pb-3.5 mb-3.5 pt-1">
+              <div class="flex items-center gap-2.5">
+                <div class="w-11 h-11 rounded-2xl bg-[#dfba38] text-[#111] font-black text-xl flex items-center justify-center shadow">
+                  <span id="poster-logo-char">م</span>
+                </div>
+                <div>
+                  <h2 id="poster-rest-name" class="text-base font-black text-white">مطعمي</h2>
+                  <p class="text-[11px] text-[#dfba38] font-bold">جدول دوام الكادر الرسمي</p>
+                </div>
+              </div>
+              <div class="text-left bg-[#22211b] border border-[#343227] px-3 py-1.5 rounded-xl">
+                <span class="block text-[10px] text-gray-400">التاريخ</span>
+                <span id="poster-date" class="text-xs font-extrabold text-white">السبت 14/11</span>
+              </div>
+            </div>
+
+            <!-- Summary Pill Counters -->
+            <div id="poster-stats" class="grid grid-cols-3 gap-2 mb-3.5 text-center">
+              <!-- Populated dynamically -->
+            </div>
+
+            <!-- Grouped Working Staff List -->
+            <div id="poster-sections-list" class="space-y-3">
+              <!-- Populated dynamically -->
+            </div>
+
+            <!-- Poster Footer -->
+            <div class="mt-4 pt-2.5 border-t border-[#26251e] flex items-center justify-between text-[10px] text-gray-400">
+              <span>نظام إدارة الدوام</span>
+              <span class="text-[#dfba38] font-bold">يرجى الالتزام بموعد الحضور ⏰</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: WEEKLY REPORT & PAYROLL ("التقرير الأسبوعي") -->
+        <div id="view-weekly" class="hidden space-y-3.5 animate-fade">
+          <!-- Weekly Summary Header Card -->
+          <div class="bg-[#171715] border border-[#2a2923] rounded-2xl p-3.5">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <h2 class="text-sm font-extrabold text-white">ملخص الرواتب وأيام الدوام</h2>
+                <p id="weekly-range-label" class="text-[11px] text-gray-400">حساب تلقائي للأيام المسجلة</p>
+              </div>
+              <button
+                onclick="copyWeeklyReport()"
+                class="px-3 py-1.5 rounded-xl bg-[#27261f] hover:bg-[#343229] border border-[#3d3b30] text-[#dfba38] text-xs font-bold transition active:scale-95"
+              >
+                📋 نسخ التقرير
+              </button>
+            </div>
+
+            <!-- Scope Filter Toggle -->
+            <div class="flex bg-[#10100e] p-1 rounded-xl border border-[#25241e] text-xs font-bold mb-3">
+              <button
+                id="btn-scope-week"
+                onclick="setReportScope('week')"
+                class="flex-1 py-1.5 rounded-lg bg-[#dfba38] text-[#121210] transition"
+              >
+                الأسبوع الحالي (7 أيام)
+              </button>
+              <button
+                id="btn-scope-all"
+                onclick="setReportScope('all')"
+                class="flex-1 py-1.5 rounded-lg text-gray-400 hover:text-white transition"
+              >
+                كل السجلات المحفوظة
+              </button>
+            </div>
+
+            <!-- Grand Total Box -->
+            <div class="bg-gradient-to-l from-[#26200f] to-[#1b1a16] border border-[#dfba38]/40 rounded-xl p-3 flex items-center justify-between">
+              <div>
+                <span class="block text-[11px] text-gray-300">مجموع الرواتب المستحقة</span>
+                <span id="weekly-total-days" class="text-[11px] text-[#dfba38] font-semibold">0 يوم عمل إجمالي</span>
+              </div>
+              <div class="text-left">
+                <span id="weekly-grand-total" class="text-lg font-black text-[#dfba38]">0</span>
+                <span class="text-xs font-bold text-gray-300 mr-1">د.ع</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Employee Payroll Cards -->
+          <div id="weekly-employees-list" class="space-y-2.5">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- VIEW 4: STAFF & SETTINGS ("الموظفين والإعدادات") -->
+        <div id="view-settings" class="hidden space-y-4 animate-fade">
+
+          <!-- 1. Restaurant Branding Settings -->
+          <div class="bg-[#171715] border border-[#2a2923] rounded-2xl p-3.5 space-y-3">
+            <h3 class="text-sm font-extrabold text-[#dfba38] flex items-center gap-1.5">
+              <span>🏪</span>
+              <span>إعدادات المطعم والهوية</span>
+            </h3>
+            <div class="grid grid-cols-4 gap-2">
+              <div class="col-span-1">
+                <label class="block text-[11px] text-gray-400 mb-1">الحرف</label>
+                <input
+                  type="text"
+                  id="input-logo-char"
+                  maxlength="2"
+                  class="w-full bg-[#10100e] border border-[#2c2b24] focus:border-[#dfba38] rounded-xl px-2 py-2 text-center font-black text-base text-[#dfba38] outline-none"
+                />
+              </div>
+              <div class="col-span-3">
+                <label class="block text-[11px] text-gray-400 mb-1">اسم المطعم</label>
+                <input
+                  type="text"
+                  id="input-rest-name"
+                  placeholder="مثال: مطعمي"
+                  class="w-full bg-[#10100e] border border-[#2c2b24] focus:border-[#dfba38] rounded-xl px-3 py-2 text-sm font-bold text-white outline-none"
+                />
+              </div>
+            </div>
+            <button
+              onclick="saveRestaurantInfo()"
+              class="w-full py-2 rounded-xl bg-[#dfba38] hover:bg-[#cca729] text-[#121210] font-extrabold text-xs transition active:scale-95"
+            >
+              حفظ اسم المطعم والشعار
+            </button>
+          </div>
+
+          <!-- 2. Add / Edit Employee Form -->
+          <div class="bg-[#171715] border border-[#2a2923] rounded-2xl p-3.5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 id="emp-form-title" class="text-sm font-extrabold text-[#dfba38] flex items-center gap-1.5">
+                <span>➕</span>
+                <span>إضافة موظف جديد</span>
+              </h3>
+              <button id="btn-cancel-edit" onclick="cancelEditEmployee()" class="hidden text-[11px] text-red-400 underline">
+                إلغاء التعديل
+              </button>
+            </div>
+
+            <input type="hidden" id="edit-emp-id" value="" />
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] text-gray-400 mb-1">اسم الموظف</label>
+                <input
+                  type="text"
+                  id="emp-name"
+                  placeholder="مثال: أبو أحمد"
+                  class="w-full bg-[#10100e] border border-[#2c2b24] focus:border-[#dfba38] rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400 mb-1">القسم / الصالة</label>
+                <select
+                  id="emp-dept"
+                  class="w-full bg-[#10100e] border border-[#2c2b24] focus:border-[#dfba38] rounded-xl px-2.5 py-2 text-xs font-bold text-white outline-none"
+                ></select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] text-gray-400 mb-1">نوع الشفت</label>
+                <select
+                  id="emp-shift"
+                  class="w-full bg-[#10100e] border border-[#2c2b24] focus:border-[#dfba38] rounded-xl px-2.5 py-2 text-xs font-bold text-white outline-none"
+                >
+                  <option value="كامل">كامل</option>
+                  <option value="صباحي">صباحي</option>
+                  <option value="مسائي">مسائي</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400 mb-1">اليومية (د.ع)</label>
+                <input
+                  type="number"
+                  id="emp-wage"
+                  step="1000"
+                  placeholder="35000"
+                  class="w-full bg-[#10100e] border border-[#2c2b24] focus:border-[#dfba38] rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              onclick="saveEmployeeForm()"
+              id="btn-save-emp"
+              class="w-full py-2.5 rounded-xl bg-[#10b981] hover:bg-[#0ea371] text-white font-extrabold text-xs transition active:scale-95"
+            >
+              إضافة الموظف للقائمة
+            </button>
+          </div>
+
+          <!-- 3. Manage Departments -->
+          <div class="bg-[#171715] border border-[#2a2923] rounded-2xl p-3.5 space-y-3">
+            <h3 class="text-sm font-extrabold text-[#dfba38] flex items-center gap-1.5">
+              <span>📂</span>
+              <span>الأقسام والصالات</span>
+            </h3>
+            <div class="flex gap-2">
+              <input
+                type="text"
+                id="new-dept-icon"
+                placeholder="🍽️"
+                maxlength="2"
+                class="w-12 bg-[#10100e] border border-[#2c2b24] rounded-xl px-2 py-2 text-center text-sm outline-none"
+              />
+              <input
+                type="text"
+                id="new-dept-name"
+                placeholder="اسم قسم جديد (مثال: المشويات)"
+                class="flex-1 bg-[#10100e] border border-[#2c2b24] focus:border-[#dfba38] rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
+              />
+              <button
+                onclick="addDepartment()"
+                class="px-4 py-2 rounded-xl bg-[#dfba38] text-[#121210] font-extrabold text-xs shrink-0"
+              >
+                إضافة
+              </button>
+            </div>
+            <div id="settings-depts-list" class="flex flex-wrap gap-1.5 pt-1"></div>
+          </div>
+
+          <!-- 4. Current Staff List (Edit / Delete) -->
+          <div class="bg-[#171715] border border-[#2a2923] rounded-2xl p-3.5 space-y-2.5">
+            <h3 class="text-sm font-extrabold text-white">قائمة الموظفين الحاليين</h3>
+            <div id="settings-staff-list" class="space-y-2"></div>
+          </div>
+
+          <!-- 5. Reset Defaults -->
+          <div class="pt-1 pb-2 text-center">
+            <button
+              onclick="confirmResetData()"
+              id="btn-reset-defaults"
+              class="px-4 py-2 rounded-xl bg-[#261415] hover:bg-[#381b1d] border border-red-900/50 text-red-400 text-xs font-bold transition"
+            >
+              🔄 استعادة البيانات الافتراضية
+            </button>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+
+    <!-- 5. BOTTOM PERSISTENCE STATUS BAR -->
+    <footer class="px-4 pt-6 pb-2 flex justify-center">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#151513] border border-[#25241e] text-[11px] text-gray-400">
+        <span class="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
+        <span>البيانات محفوظة تلقائياً على جهازك</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. DEFAULT DATA & STATE INITIALIZATION
+    // ==========================================
+    const STORAGE_KEY = 'iraqi_restaurant_attendance_v1';
+
+    const DEFAULT_STATE = {
+      restaurantName: 'مطعمي',
+      logoChar: 'م',
+      departments: [
+        { id: 'dept_youth', name: 'صالة الشباب', icon: '☕' },
+        { id: 'dept_family', name: 'صالة العوائل', icon: '🏡' },
+        { id: 'dept_takeaway', name: 'السفري', icon: '🥡' },
+        { id: 'dept_kitchen', name: 'المطبخ', icon: '🔥' }
+      ],
+      employees: [
+        { id: 'emp_1', name: 'أبو أحمد', deptId: 'dept_youth', shift: 'كامل', wage: 35000 },
+        { id: 'emp_2', name: 'حسن', deptId: 'dept_youth', shift: 'صباحي', wage: 25000 },
+        { id: 'emp_3', name: 'علي صالح', deptId: 'dept_family', shift: 'كامل', wage: 30000 },
+        { id: 'emp_4', name: 'محمد سالم', deptId: 'dept_family', shift: 'مسائي', wage: 25000 },
+        { id: 'emp_5', name: 'أبو خالد', deptId: 'dept_takeaway', shift: 'كامل', wage: 28000 },
+        { id: 'emp_6', name: 'عبدالله', deptId: 'dept_takeaway', shift: 'كامل', wage: 28000 },
+        { id: 'emp_7', name: 'الشيف أبو يوسف', deptId: 'dept_kitchen', shift: 'كامل', wage: 50000 },
+        { id: 'emp_8', name: 'الشيف الصغير', deptId: 'dept_kitchen', shift: 'صباحي', wage: 35000 }
+      ],
+      // attendance: { 'YYYY-MM-DD': { 'emp_1': 'present' | 'half' | 'leave' } }
+      attendance: {}
+    };
+
+    // Iraqi / Levantine Arabic Month & Day Names
+    const ARABIC_DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const IRAQI_MONTHS = [
+      'كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران',
+      'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'
+    ];
+
+    let appState = loadState();
+    let selectedDateStr = getTodayISO();
+    let currentTab = 'today';
+    let reportScope = 'week'; // 'week' | 'all'
+    let resetConfirmPending = false;
+
+    // ==========================================
+    // 2. DATE HELPERS (IRAQI ARABIC FORMATTING)
+    // ==========================================
+    function getTodayISO() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function addDaysToISO(isoDate, daysToAdd) {
+      const [y, m, d] = isoDate.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      dateObj.setDate(dateObj.getDate() + daysToAdd);
+      const ny = dateObj.getFullYear();
+      const nm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const nd = String(dateObj.getDate()).padStart(2, '0');
+      return `${ny}-${nm}-${nd}`;
+    }
+
+    function formatArabicDateFull(isoDate) {
+      const [y, m, d] = isoDate.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const dayName = ARABIC_DAYS[dateObj.getDay()];
+      const monthName = IRAQI_MONTHS[m - 1];
+      return `${dayName} - ${d} ${monthName} ${y}`;
+    }
+
+    function formatArabicDateShort(isoDate) {
+      const [y, m, d] = isoDate.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const dayName = ARABIC_DAYS[dateObj.getDay()];
+      return `${dayName} ${d}/${m}/${y}`;
+    }
+
+    function formatCurrency(num) {
+      return Number(num || 0).toLocaleString('en-US');
+    }
+
+    // ==========================================
+    // 3. STORAGE & STATE MANAGEMENT
+    // ==========================================
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        const parsed = JSON.parse(raw);
+        return {
+          ...JSON.parse(JSON.stringify(DEFAULT_STATE)),
+          ...parsed
+        };
+      } catch (e) {
+        return JSON.parse(JSON.stringify(DEFAULT_STATE));
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.error('Failed to save to localStorage', e);
+      }
+    }
+
+    // Ensure every employee has a default status ('present') for a given date if accessed
+    function getEmployeeStatusForDate(dateStr, empId) {
+      if (!appState.attendance[dateStr]) {
+        return 'present'; // Default active status matching the screenshot
+      }
+      return appState.attendance[dateStr][empId] || 'present';
+    }
+
+    function ensureDateInitialized(dateStr) {
+      if (!appState.attendance[dateStr]) {
+        appState.attendance[dateStr] = {};
+      }
+      appState.employees.forEach(emp => {
+        if (!appState.attendance[dateStr][emp.id]) {
+          appState.attendance[dateStr][emp.id] = 'present';
+        }
+      });
+    }
+
+    function setEmployeeStatus(empId, status) {
+      ensureDateInitialized(selectedDateStr);
+      appState.attendance[selectedDateStr][empId] = status;
+      saveState();
+      renderAll();
+    }
+
+    function setDepartmentBulkStatus(deptId, status) {
+      ensureDateInitialized(selectedDateStr);
+      appState.employees
+        .filter(e => e.deptId === deptId)
+        .forEach(e => {
+          appState.attendance[selectedDateStr][e.id] = status;
+        });
+      saveState();
+      renderAll();
+      const label = status === 'present' ? 'الكل موجود' : 'الكل مجاز';
+      showToast(`تم تحديث القسم: ${label}`);
+    }
+
+    // ==========================================
+    // 4. NAVIGATION & DATE CONTROLS
+    // ==========================================
+    function handleDateChange(newDate) {
+      if (!newDate) return;
+      selectedDateStr = newDate;
+      ensureDateInitialized(selectedDateStr);
+      saveState();
+      renderAll();
+    }
+
+    function jumpToTomorrow() {
+      const tomorrow = addDaysToISO(getTodayISO(), 1);
+      selectedDateStr = tomorrow;
+      ensureDateInitialized(selectedDateStr);
+      saveState();
+      renderAll();
+      showToast('تم الانتقال إلى جدول غدا');
+    }
+
+    function jumpToToday() {
+      selectedDateStr = getTodayISO();
+      ensureDateInitialized(selectedDateStr);
+      saveState();
+      renderAll();
+    }
+
+    function advanceOneDay() {
+      selectedDateStr = addDaysToISO(selectedDateStr, 1);
+      ensureDateInitialized(selectedDateStr);
+      saveState();
+      renderAll();
+    }
+
+    function switchTab(tabName) {
+      currentTab = tabName;
+
+      // Update Tab Buttons
+      const tabs = ['today', 'tomorrow', 'weekly', 'settings'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const view = document.getElementById(`view-${t}`);
+        if (t === tabName) {
+          btn.className = 'tab-btn flex-1 min-w-[82px] py-2 px-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition whitespace-nowrap bg-[#dfba38] text-[#121210] shadow';
+          view.classList.remove('hidden');
+        } else {
+          btn.className = 'tab-btn flex-1 min-w-[82px] py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition whitespace-nowrap text-gray-300 hover:bg-[#23221d]';
+          view.classList.add('hidden');
+        }
+      });
+
+      renderAll();
+    }
+
+    function openTomorrowScheduleFromCTA() {
+      ensureDateInitialized(selectedDateStr);
+      saveState();
+      switchTab('tomorrow');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ==========================================
+    // 5. RENDERING FUNCTIONS
+    // ==========================================
+    function renderAll() {
+      // 1. Header & Date Info
+      document.getElementById('header-rest-name').textContent = appState.restaurantName;
+      document.getElementById('header-logo-char').textContent = appState.logoChar;
+      document.getElementById('formatted-arabic-date').textContent = formatArabicDateFull(selectedDateStr);
+      document.getElementById('date-picker').value = selectedDateStr;
+
+      const todayBtn = document.getElementById('btn-back-today');
+      if (selectedDateStr !== getTodayISO()) {
+        todayBtn.classList.remove('hidden');
+      } else {
+        todayBtn.classList.add('hidden');
+      }
+
+      // 2. Render Active View
+      if (currentTab === 'today') {
+        renderTodayView();
+      } else if (currentTab === 'tomorrow') {
+        renderTomorrowPoster();
+      } else if (currentTab === 'weekly') {
+        renderWeeklyReport();
+      } else if (currentTab === 'settings') {
+        renderSettingsView();
+      }
+    }
+
+    // RENDER VIEW 1: TODAY'S DEPARTMENTS & STAFF
+    function renderTodayView() {
+      const container = document.getElementById('departments-container');
+      container.innerHTML = '';
+
+      appState.departments.forEach(dept => {
+        const deptEmployees = appState.employees.filter(e => e.deptId === dept.id);
+        const totalCount = deptEmployees.length;
+        const activeCount = deptEmployees.filter(e => {
+          const st = getEmployeeStatusForDate(selectedDateStr, e.id);
+          return st === 'present' || st === 'half';
+        }).length;
+
+        const card = document.createElement('div');
+        card.className = 'bg-[#171715] border border-[#282721] rounded-2xl p-3.5 shadow-md';
+
+        // Department Header Row
+        let headerHTML = `
+          <div class="flex items-center justify-between pb-3 mb-2.5 border-b border-[#24231e]">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">${dept.icon}</span>
+              <h2 class="text-sm sm:text-base font-extrabold text-white">${dept.name}</h2>
+              <span class="px-2 py-0.5 rounded-full bg-[#2c2511] border border-[#524319] text-[#dfba38] text-[11px] font-extrabold">
+                ${activeCount} / ${totalCount}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button
+                onclick="setDepartmentBulkStatus('${dept.id}', 'present')"
+                class="px-2.5 py-1 rounded-lg bg-[#112c22] hover:bg-[#173d2f] border border-[#1d4d3b] text-[#34d399] text-[11px] font-bold transition active:scale-95"
+              >
+                الكل موجود
+              </button>
+              <button
+                onclick="setDepartmentBulkStatus('${dept.id}', 'leave')"
+                class="px-2.5 py-1 rounded-lg bg-[#2c1517] hover:bg-[#3d1c1f] border border-[#572428] text-[#f87171] text-[11px] font-bold transition active:scale-95"
+              >
+                الكل مجاز
+              </button>
+            </div>
+          </div>
+        `;
+
+        // Employee Rows
+        let rowsHTML = '';
+        if (deptEmployees.length === 0) {
+          rowsHTML = `<p class="text-xs text-gray-500 text-center py-3">لا يوجد موظفين في هذا القسم حالياً</p>`;
+        } else {
+          rowsHTML = `<div class="divide-y divide-[#23221d]">`;
+          deptEmployees.forEach(emp => {
+            const status = getEmployeeStatusForDate(selectedDateStr, emp.id);
+
+            // Dot Color
+            let dotClass = 'bg-[#10b981] shadow-[0_0_8px_#10b981]';
+            if (status === 'half') dotClass = 'bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]';
+            if (status === 'leave') dotClass = 'bg-[#ef4444] shadow-[0_0_8px_#ef4444]';
+
+            // Toggle Buttons Styling
+            const presentBtnClass = status === 'present'
+              ? 'bg-[#10b981] text-[#071f17] font-extrabold border-[#10b981] shadow-sm'
+              : 'bg-[#11110f] text-gray-400 hover:text-gray-200 border-[#292822] font-semibold';
+
+            const halfBtnClass = status === 'half'
+              ? 'bg-[#dfba38] text-[#14120b] font-extrabold border-[#dfba38] shadow-sm'
+              : 'bg-[#11110f] text-gray-400 hover:text-gray-200 border-[#292822] font-semibold';
+
+            const leaveBtnClass = status === 'leave'
+              ? 'bg-[#dc2626] text-white font-extrabold border-[#dc2626] shadow-sm'
+              : 'bg-[#11110f] text-gray-400 hover:text-gray-200 border-[#292822] font-semibold';
+
+            rowsHTML += `
+              <div class="py-2.5 first:pt-0.5 last:pb-0.5 flex items-center justify-between gap-2">
+                <!-- Employee Info (Right) -->
+                <div class="flex items-start gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full mt-2 shrink-0 ${dotClass}"></span>
+                  <div class="min-w-0">
+                    <div class="text-xs sm:text-sm font-extrabold text-white truncate">${emp.name}</div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                      <span class="px-1.5 py-0.5 rounded bg-[#272418] border border-[#3d3720] text-[#dfba38] text-[10px] font-bold">
+                        ${emp.shift}
+                      </span>
+                      <span class="text-[11px] text-gray-400 font-semibold">
+                        ${formatCurrency(emp.wage)} د.ع
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3 Interactive Status Toggle Buttons (Left) -->
+                <div class="flex items-center gap-1 shrink-0">
+                  <button
+                    onclick="setEmployeeStatus('${emp.id}', 'present')"
+                    class="status-btn px-2 sm:px-2.5 py-1.5 rounded-lg border text-[11px] ${presentBtnClass}"
+                  >
+                    موجود غدا
+                  </button>
+                  <button
+                    onclick="setEmployeeStatus('${emp.id}', 'half')"
+                    class="status-btn px-2 py-1.5 rounded-lg border text-[11px] ${halfBtnClass}"
+                  >
+                    نص نهار
+                  </button>
+                  <button
+                    onclick="setEmployeeStatus('${emp.id}', 'leave')"
+                    class="status-btn px-2 py-1.5 rounded-lg border text-[11px] ${leaveBtnClass}"
+                  >
+                    مجاز
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+          rowsHTML += `</div>`;
+        }
+
+        card.innerHTML = headerHTML + rowsHTML;
+        container.appendChild(card);
+      });
+    }
+
+    // RENDER VIEW 2: TOMORROW SCHEDULE POSTER ("جدول غدا")
+    function renderTomorrowPoster() {
+      document.getElementById('poster-logo-char').textContent = appState.logoChar;
+      document.getElementById('poster-rest-name').textContent = appState.restaurantName;
+      document.getElementById('poster-date').textContent = formatArabicDateFull(selectedDateStr);
+
+      let presentCount = 0;
+      let halfCount = 0;
+      let leaveCount = 0;
+
+      appState.employees.forEach(emp => {
+        const st = getEmployeeStatusForDate(selectedDateStr, emp.id);
+        if (st === 'present') presentCount++;
+        else if (st === 'half') halfCount++;
+        else leaveCount++;
+      });
+
+      document.getElementById('poster-stats').innerHTML = `
+        <div class="bg-[#102920] border border-[#1c4b3a] rounded-xl py-1.5 px-2">
+          <span class="block text-sm font-black text-[#34d399]">${presentCount + halfCount}</span>
+          <span class="text-[10px] text-gray-300 font-bold">المباشرين</span>
+        </div>
+        <div class="bg-[#2b2410] border border-[#524319] rounded-xl py-1.5 px-2">
+          <span class="block text-sm font-black text-[#dfba38]">${halfCount}</span>
+          <span class="text-[10px] text-gray-300 font-bold">نص نهار</span>
+        </div>
+        <div class="bg-[#291416] border border-[#4f2226] rounded-xl py-1.5 px-2">
+          <span class="block text-sm font-black text-[#f87171]">${leaveCount}</span>
+          <span class="text-[10px] text-gray-300 font-bold">المجازين</span>
+        </div>
+      `;
+
+      const sectionsContainer = document.getElementById('poster-sections-list');
+      sectionsContainer.innerHTML = '';
+
+      appState.departments.forEach(dept => {
+        const workingStaff = appState.employees.filter(emp => {
+          if (emp.deptId !== dept.id) return false;
+          const st = getEmployeeStatusForDate(selectedDateStr, emp.id);
+          return st === 'present' || st === 'half';
+        });
+
+        const leaveStaff = appState.employees.filter(emp => {
+          if (emp.deptId !== dept.id) return false;
+          return getEmployeeStatusForDate(selectedDateStr, emp.id) === 'leave';
+        });
+
+        const secDiv = document.createElement('div');
+        secDiv.className = 'bg-[#1c1b17] border border-[#2d2b22] rounded-2xl p-3';
+
+        let staffBadges = '';
+        if (workingStaff.length === 0) {
+          staffBadges = `<span class="text-[11px] text-gray-500">لا يوجد مداومين في هذا القسم</span>`;
+        } else {
+          staffBadges = `<div class="flex flex-wrap gap-1.5 mt-2">`;
+          workingStaff.forEach(emp => {
+            const st = getEmployeeStatusForDate(selectedDateStr, emp.id);
+            const isHalf = st === 'half';
+            staffBadges += `
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl ${isHalf ? 'bg-[#2e2611] border border-[#dfba38]/60 text-[#f7df86]' : 'bg-[#132b22] border border-[#1f4d3b] text-white'} text-xs font-bold">
+                <span class="w-1.5 h-1.5 rounded-full ${isHalf ? 'bg-[#dfba38]' : 'bg-[#10b981]'}"></span>
+                <span>${emp.name}</span>
+                <span class="text-[10px] opacity-80">(${isHalf ? 'نص نهار' : emp.shift})</span>
+              </div>
+            `;
+          });
+          staffBadges += `</div>`;
+        }
+
+        let leaveNote = '';
+        if (leaveStaff.length > 0) {
+          const names = leaveStaff.map(e => e.name).join('، ');
+          leaveNote = `<div class="mt-2 pt-1.5 border-t border-[#27261f] text-[10px] text-red-400/90">مجاز: ${names}</div>`;
+        }
+
+        secDiv.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span>${dept.icon}</span>
+              <span class="text-xs font-extrabold text-[#dfba38]">${dept.name}</span>
+            </div>
+            <span class="text-[11px] font-bold text-gray-400">${workingStaff.length} موظف</span>
+          </div>
+          ${staffBadges}
+          ${leaveNote}
+        `;
+        sectionsContainer.appendChild(secDiv);
+      });
+    }
+
+    // RENDER VIEW 3: WEEKLY REPORT & PAYROLL ("التقرير الأسبوعي")
+    function setReportScope(scope) {
+      reportScope = scope;
+      const btnWeek = document.getElementById('btn-scope-week');
+      const btnAll = document.getElementById('btn-scope-all');
+      if (scope === 'week') {
+        btnWeek.className = 'flex-1 py-1.5 rounded-lg bg-[#dfba38] text-[#121210] transition';
+        btnAll.className = 'flex-1 py-1.5 rounded-lg text-gray-400 hover:text-white transition';
+      } else {
+        btnAll.className = 'flex-1 py-1.5 rounded-lg bg-[#dfba38] text-[#121210] transition';
+        btnWeek.className = 'flex-1 py-1.5 rounded-lg text-gray-400 hover:text-white transition';
+      }
+      renderWeeklyReport();
+    }
+
+    function getTargetDatesForReport() {
+      // Ensure selectedDateStr is initialized so at least current view has data
+      ensureDateInitialized(selectedDateStr);
+      const allRecordedDates = Object.keys(appState.attendance).sort();
+
+      if (reportScope === 'all') {
+        return allRecordedDates;
+      }
+
+      // 7-day window ending on selectedDateStr (or containing selectedDateStr)
+      const weekDates = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = addDaysToISO(selectedDateStr, -i);
+        if (appState.attendance[d]) {
+          weekDates.push(d);
+        }
+      }
+      return weekDates.length > 0 ? weekDates : [selectedDateStr];
+    }
+
+    function renderWeeklyReport() {
+      const targetDates = getTargetDatesForReport();
+      const rangeLabel = document.getElementById('weekly-range-label');
+      if (targetDates.length === 1) {
+        rangeLabel.textContent = `محسوب لـ 1 يوم مسجل (${formatArabicDateShort(targetDates[0])})`;
+      } else {
+        rangeLabel.textContent = `محسوب لـ ${targetDates.length} أيام مسجلة (من ${targetDates[0]} إلى ${targetDates[targetDates.length - 1]})`;
+      }
+
+      const listContainer = document.getElementById('weekly-employees-list');
+      listContainer.innerHTML = '';
+
+      let grandTotalSalary = 0;
+      let grandTotalDays = 0;
+
+      appState.employees.forEach(emp => {
+        const dept = appState.departments.find(d => d.id === emp.deptId);
+        let fullDays = 0;
+        let halfDays = 0;
+        let leaveDays = 0;
+
+        targetDates.forEach(dateStr => {
+          const st = getEmployeeStatusForDate(dateStr, emp.id);
+          if (st === 'present') fullDays += 1;
+          else if (st === 'half') halfDays += 1;
+          else leaveDays += 1;
+        });
+
+        const effectiveDays = fullDays + (halfDays * 0.5);
+        const earnedSalary = Math.round(effectiveDays * emp.wage);
+
+        grandTotalSalary += earnedSalary;
+        grandTotalDays += effectiveDays;
+
+        const row = document.createElement('div');
+        row.className = 'bg-[#171715] border border-[#282721] rounded-2xl p-3 flex items-center justify-between gap-2';
+        row.innerHTML = `
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs sm:text-sm font-extrabold text-white">${emp.name}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#23221c] text-gray-400">
+                ${dept ? dept.icon + ' ' + dept.name : ''}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 mt-1.5 text-[11px]">
+              <span class="text-[#34d399] font-bold">دوام: ${effectiveDays} يوم</span>
+              ${halfDays > 0 ? `<span class="text-[#dfba38]">(${halfDays} نص)</span>` : ''}
+              <span class="text-red-400">مجاز: ${leaveDays}</span>
+            </div>
+          </div>
+
+          <div class="text-left">
+            <div class="text-sm font-black text-[#dfba38]">${formatCurrency(earnedSalary)} <span class="text-[10px] text-gray-400 font-bold">د.ع</span></div>
+            <div class="text-[10px] text-gray-500">اليومية: ${formatCurrency(emp.wage)}</div>
+          </div>
+        `;
+        listContainer.appendChild(row);
+      });
+
+      document.getElementById('weekly-grand-total').textContent = formatCurrency(grandTotalSalary);
+      document.getElementById('weekly-total-days').textContent = `إجمالي أيام العمل: ${grandTotalDays} يوم`;
+    }
+
+    // RENDER VIEW 4: SETTINGS & STAFF MANAGEMENT ("الموظفين والإعدادات")
+    function renderSettingsView() {
+      document.getElementById('input-logo-char').value = appState.logoChar;
+      document.getElementById('input-rest-name').value = appState.restaurantName;
+
+      // Populate Department Select Dropdown
+      const deptSelect = document.getElementById('emp-dept');
+      const currentVal = deptSelect.value;
+      deptSelect.innerHTML = '';
+      appState.departments.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = `${d.icon} ${d.name}`;
+        deptSelect.appendChild(opt);
+      });
+      if (currentVal && appState.departments.some(d => d.id === currentVal)) {
+        deptSelect.value = currentVal;
+      }
+
+      // Render Departments Pills
+      const deptsList = document.getElementById('settings-depts-list');
+      deptsList.innerHTML = '';
+      appState.departments.forEach(d => {
+        const pill = document.createElement('div');
+        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#22211b] border border-[#343228] text-xs font-bold text-gray-200';
+        pill.innerHTML = `
+          <span>${d.icon} ${d.name}</span>
+          ${appState.departments.length > 1 ? `<button onclick="deleteDepartment('${d.id}')" class="text-red-400 hover:text-red-300 mr-1 font-black">×</button>` : ''}
+        `;
+        deptsList.appendChild(pill);
+      });
+
+      // Render Staff List for Edit/Delete
+      const staffList = document.getElementById('settings-staff-list');
+      staffList.innerHTML = '';
+      appState.employees.forEach(emp => {
+        const dept = appState.departments.find(d => d.id === emp.deptId);
+        const item = document.createElement('div');
+        item.className = 'bg-[#11110f] border border-[#26251f] rounded-xl p-2.5 flex items-center justify-between gap-2';
+        item.innerHTML = `
+          <div>
+            <div class="text-xs font-extrabold text-white">${emp.name}</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">
+              ${dept ? dept.name : ''} • ${emp.shift} • <span class="text-[#dfba38]">${formatCurrency(emp.wage)} د.ع</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button
+              onclick="startEditEmployee('${emp.id}')"
+              class="px-2.5 py-1 rounded-lg bg-[#272418] text-[#dfba38] text-[11px] font-bold"
+            >
+              تعديل
+            </button>
+            <button
+              onclick="deleteEmployee('${emp.id}')"
+              class="px-2.5 py-1 rounded-lg bg-[#2b1416] text-red-400 text-[11px] font-bold"
+            >
+              حذف
+            </button>
+          </div>
+        `;
+        staffList.appendChild(item);
+      });
+    }
+
+    // ==========================================
+    // 6. SETTINGS CRUD OPERATIONS
+    // ==========================================
+    function saveRestaurantInfo() {
+      const name = document.getElementById('input-rest-name').value.trim();
+      const char = document.getElementById('input-logo-char').value.trim();
+      if (!name) {
+        showToast('يرجى كتابة اسم المطعم', '⚠️');
+        return;
+      }
+      appState.restaurantName = name;
+      appState.logoChar = char || name.charAt(0);
+      saveState();
+      renderAll();
+      showToast('تم حفظ اسم المطعم بنجاح');
+    }
+
+    function saveEmployeeForm() {
+      const editId = document.getElementById('edit-emp-id').value;
+      const name = document.getElementById('emp-name').value.trim();
+      const deptId = document.getElementById('emp-dept').value;
+      const shift = document.getElementById('emp-shift').value;
+      const wage = parseInt(document.getElementById('emp-wage').value, 10);
+
+      if (!name) {
+        showToast('يرجى إدخال اسم الموظف', '⚠️');
+        return;
+      }
+      if (isNaN(wage) || wage < 0) {
+        showToast('يرجى إدخال مبلغ اليومية بشكل صحيح', '⚠️');
+        return;
+      }
+
+      if (editId) {
+        const idx = appState.employees.findIndex(e => e.id === editId);
+        if (idx !== -1) {
+          appState.employees[idx] = { ...appState.employees[idx], name, deptId, shift, wage };
+        }
+        showToast('تم تحديث بيانات الموظف');
+      } else {
+        const newEmp = {
+          id: 'emp_' + Date.now(),
+          name,
+          deptId,
+          shift,
+          wage
+        };
+        appState.employees.push(newEmp);
+        showToast('تمت إضافة الموظف بنجاح');
+      }
+
+      cancelEditEmployee();
+      saveState();
+      renderAll();
+    }
+
+    function startEditEmployee(empId) {
+      const emp = appState.employees.find(e => e.id === empId);
+      if (!emp) return;
+      document.getElementById('edit-emp-id').value = emp.id;
+      document.getElementById('emp-name').value = emp.name;
+      document.getElementById('emp-dept').value = emp.deptId;
+      document.getElementById('emp-shift').value = emp.shift;
+      document.getElementById('emp-wage').value = emp.wage;
+
+      document.getElementById('emp-form-title').innerHTML = `<span>✏️</span><span>تعديل بيانات: ${emp.name}</span>`;
+      document.getElementById('btn-save-emp').textContent = 'حفظ التعديلات';
+      document.getElementById('btn-cancel-edit').classList.remove('hidden');
+      document.getElementById('emp-name').focus();
+    }
+
+    function cancelEditEmployee() {
+      document.getElementById('edit-emp-id').value = '';
+      document.getElementById('emp-name').value = '';
+      document.getElementById('emp-wage').value = '';
+      document.getElementById('emp-form-title').innerHTML = `<span>➕</span><span>إضافة موظف جديد</span>`;
+      document.getElementById('btn-save-emp').textContent = 'إضافة الموظف للقائمة';
+      document.getElementById('btn-cancel-edit').classList.add('hidden');
+    }
+
+    function deleteEmployee(empId) {
+      appState.employees = appState.employees.filter(e => e.id !== empId);
+      saveState();
+      renderAll();
+      showToast('تم حذف الموظف');
+    }
+
+    function addDepartment() {
+      const name = document.getElementById('new-dept-name').value.trim();
+      const icon = document.getElementById('new-dept-icon').value.trim() || '🍽️';
+      if (!name) {
+        showToast('اكتب اسم القسم أولاً', '⚠️');
+        return;
+      }
+      appState.departments.push({
+        id: 'dept_' + Date.now(),
+        name,
+        icon
+      });
+      document.getElementById('new-dept-name').value = '';
+      document.getElementById('new-dept-icon').value = '';
+      saveState();
+      renderAll();
+      showToast('تمت إضافة القسم');
+    }
+
+    function deleteDepartment(deptId) {
+      if (appState.departments.length <= 1) return;
+      const fallbackDept = appState.departments.find(d => d.id !== deptId);
+      appState.employees.forEach(e => {
+        if (e.deptId === deptId) e.deptId = fallbackDept.id;
+      });
+      appState.departments = appState.departments.filter(d => d.id !== deptId);
+      saveState();
+      renderAll();
+      showToast('تم حذف القسم ونقل موظفيه');
+    }
+
+    function confirmResetData() {
+      const btn = document.getElementById('btn-reset-defaults');
+      if (!resetConfirmPending) {
+        resetConfirmPending = true;
+        btn.textContent = '⚠️ اضغط مرة ثانية للتأكيد النهائي';
+        setTimeout(() => {
+          resetConfirmPending = false;
+          if (btn) btn.textContent = '🔄 استعادة البيانات الافتراضية';
+        }, 4000);
+      } else {
+        appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        ensureDateInitialized(selectedDateStr);
+        saveState();
+        resetConfirmPending = false;
+        btn.textContent = '🔄 استعادة البيانات الافتراضية';
+        renderAll();
+        showToast('تمت استعادة البيانات الافتراضية');
+      }
+    }
+
+    // ==========================================
+    // 7. EXPORT, IMAGE GENERATION & CLIPBOARD
+    // ==========================================
+    async function downloadScheduleImage() {
+      const captureEl = document.getElementById('schedule-capture-area');
+      const btn = document.getElementById('btn-download-png');
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = `<span>⏳</span><span>جاري التجهيز...</span>`;
+      btn.disabled = true;
+
+      try {
+        const canvas = await html2canvas(captureEl, {
+          backgroundColor: '#0c0c0c',
+          scale: 2.5,
+          useCORS: true,
+          logging: false
+        });
+        const link = document.createElement('a');
+        link.download = `جدول-دوام-${selectedDateStr}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('تم تحميل صورة الجدول بنجاح 🖼️');
+      } catch (err) {
+        console.error(err);
+        showToast('حدث خطأ أثناء إنشاء الصورة', '❌');
+      } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+      }
+    }
+
+    function copyScheduleWhatsApp() {
+      let text = `📋 *جدول دوام ${appState.restaurantName}*\n`;
+      text += `📅 *${formatArabicDateFull(selectedDateStr)}*\n`;
+      text += `━━━━━━━━━━━━━━━\n`;
+
+      appState.departments.forEach(dept => {
+        const working = appState.employees.filter(e => {
+          if (e.deptId !== dept.id) return false;
+          const st = getEmployeeStatusForDate(selectedDateStr, e.id);
+          return st === 'present' || st === 'half';
+        });
+
+        text += `\n${dept.icon} *${dept.name}* (${working.length}):\n`;
+        if (working.length === 0) {
+          text += `   - لا يوجد\n`;
+        } else {
+          working.forEach(emp => {
+            const st = getEmployeeStatusForDate(selectedDateStr, emp.id);
+            const tag = st === 'half' ? 'نص نهار ⏳' : emp.shift;
+            text += `   ✅ ${emp.name} (${tag})\n`;
+          });
+        }
+      });
+
+      text += `\n━━━━━━━━━━━━━━━\nيرجى الالتزام بمواعيد الحضور ⏰`;
+      copyTextToClipboard(text, 'تم نسخ الجدول للواتساب 📋');
+    }
+
+    function copyWeeklyReport() {
+      const targetDates = getTargetDatesForReport();
+      let text = `📊 *التقرير الأسبوعي للرواتب - ${appState.restaurantName}*\n`;
+      text += `🗓️ عدد الأيام المحسوبة: ${targetDates.length}\n`;
+      text += `━━━━━━━━━━━━━━━\n`;
+
+      let grandTotal = 0;
+      appState.employees.forEach(emp => {
+        let days = 0;
+        targetDates.forEach(d => {
+          const st = getEmployeeStatusForDate(d, emp.id);
+          if (st === 'present') days += 1;
+          else if (st === 'half') days += 0.5;
+        });
+        const total = Math.round(days * emp.wage);
+        grandTotal += total;
+        text += `• ${emp.name}: ${days} يوم = ${formatCurrency(total)} د.ع\n`;
+      });
+
+      text += `━━━━━━━━━━━━━━━\n`;
+      text += `💰 *المجموع الكلي: ${formatCurrency(grandTotal)} د.ع*`;
+      copyTextToClipboard(text, 'تم نسخ التقرير المالي 📋');
+    }
+
+    function copyTextToClipboard(text, successMsg) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg);
+      } catch (err) {
+        showToast('تعذر النسخ، حاول يدوياً', '⚠️');
+      }
+      document.body.removeChild(textarea);
+    }
+
+    // Toast Helper
+    let toastTimer = null;
+    function showToast(msg, icon = '✅') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      document.getElementById('toast-icon').textContent = icon;
+      toast.classList.remove('hidden');
+      toast.classList.add('flex');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('flex');
+      }, 2600);
+    }
+
+    // ==========================================
+    // 8. APP BOOTSTRAP
+    // ==========================================
+    // 8. APP BOOTSTRAP & PWA MANIFEST
+    // ==========================================
+    function setupPWAManifest() {
+      const iconSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='110' fill='%23dfba38'/%3E%3Ctext x='256' y='340' font-size='280' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23111111'%3E" + encodeURIComponent(appState.logoChar || 'م') + "%3C/text%3E%3C/svg%3E";
+      const manifest = {
+        name: appState.restaurantName || "نظام إدارة الدوام",
+        short_name: appState.restaurantName || "إدارة الدوام",
+        start_url: ".",
+        display: "standalone",
+        background_color: "#0c0c0c",
+        theme_color: "#0c0c0c",
+        icons: [
+          { src: iconSvg, sizes: "192x192", type: "image/svg+xml" },
+          { src: iconSvg, sizes: "512x512", type: "image/svg+xml" }
+        ]
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+      const manifestUrl = URL.createObjectURL(blob);
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = manifestUrl;
+      document.head.appendChild(link);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      ensureDateInitialized(selectedDateStr);
+      saveState();
+      setupPWAManifest();
+      renderAll();
+    });
+  </script>
+</body>
+</html>
